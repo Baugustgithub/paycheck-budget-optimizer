@@ -166,3 +166,199 @@ def calculate_fica_tax(total_income):
 
 def calculate_medicare_tax(total_income):
     return total_income * 0.0145
+    # --- Main Calculations ---
+
+# Total Income
+total_income = gross_salary + bonus_income
+
+# Pre-Tax Contributions Total (including Pension)
+total_pretax_contributions = pension_contribution + sum(pretax_contributions.values())
+
+# Adjusted Gross Income (AGI)
+agi = total_income - total_pretax_contributions
+
+# Apply Standard Deduction
+standard_deduction = 15000 if filing_status == "Single" else 30000
+taxable_income = max(agi - standard_deduction, 0)
+
+# --- Taxes ---
+federal_tax = calculate_federal_tax(taxable_income, filing_status)
+state_tax = calculate_virginia_tax(taxable_income)
+fica_tax = calculate_fica_tax(total_income)
+medicare_tax = calculate_medicare_tax(total_income)
+total_tax = federal_tax + state_tax + fica_tax + medicare_tax
+
+# --- After-Tax Income ---
+after_tax_income = total_income - total_tax
+
+# --- Post-Tax Contributions ---
+total_posttax_contributions = sum(posttax_contributions.values())
+
+# --- Net Available Cash After Savings ---
+net_available_cash = after_tax_income - total_posttax_contributions - total_other_deductions
+
+# --- Monthly Budget Sums ---
+
+# Housing
+housing_total = hoa + home_maintenance + condo_insurance + property_tax
+
+# Groceries
+groceries_total = grocery_store + costco_grocery + amazon_grocery
+
+# Restaurants
+restaurants_total = dining_out + takeout + coffee
+
+# Transportation
+transportation_total = gas + parking + car_insurance + rideshare + car_maintenance
+
+# Utilities
+utilities_total = electric + water_sewer + internet + phone
+
+# Subscriptions
+subscriptions_total = netflix + chatgpt + prime + crunchyroll + other_subs
+
+# Lifestyle
+lifestyle_total = amazon_misc + clothes_drycleaning + gym_supplements
+
+# Other Expenses
+other_expenses_total = medical + car_property_tax + miscellaneous
+
+# Total Monthly Expenses
+total_monthly_expenses = (
+    housing_total + groceries_total + restaurants_total +
+    transportation_total + utilities_total + subscriptions_total +
+    lifestyle_total + other_expenses_total
+)
+
+# Total Annual Expenses
+total_annual_expenses = total_monthly_expenses * 12
+
+# --- Final Play Money ---
+final_play_money = net_available_cash - total_annual_expenses
+# --- Display Outputs ---
+
+st.header("🏦 Income, Taxes, and Contributions Summary")
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("Gross Annual Income", f"${total_income:,.0f}")
+    st.metric("Gross Monthly Income", f"${total_income/12:,.0f}")
+    st.metric("Gross Per Paycheck", f"${total_income/24:,.0f}")
+
+with col2:
+    st.metric("After-Tax Annual Income", f"${after_tax_income:,.0f}")
+    st.metric("After-Tax Monthly Income", f"${after_tax_income/12:,.0f}")
+    st.metric("After-Tax Per Paycheck", f"${after_tax_income/24:,.0f}")
+
+with col3:
+    st.metric("Play Money Annual (after budget)", f"${final_play_money:,.0f}")
+    st.metric("Play Money Monthly", f"${final_play_money/12:,.0f}")
+    st.metric("Play Money Per Paycheck", f"${final_play_money/24:,.0f}")
+
+st.divider()
+
+# --- Detailed Budget Table ---
+st.header("📋 Detailed Budget Breakdown")
+budget_df = pd.DataFrame({
+    "Category": [
+        "Housing Total", "Groceries Total", "Restaurants Total",
+        "Transportation Total", "Utilities Total", "Subscriptions Total",
+        "Lifestyle Total", "Other Expenses Total"
+    ],
+    "Monthly Amount": [
+        housing_total, groceries_total, restaurants_total,
+        transportation_total, utilities_total, subscriptions_total,
+        lifestyle_total, other_expenses_total
+    ],
+    "Annual Amount": [
+        housing_total*12, groceries_total*12, restaurants_total*12,
+        transportation_total*12, utilities_total*12, subscriptions_total*12,
+        lifestyle_total*12, other_expenses_total*12
+    ]
+})
+st.dataframe(budget_df, use_container_width=True)
+
+st.divider()
+
+# --- Pie Chart of Salary Allocation ---
+st.header("📊 Salary Allocation Chart")
+labels = [
+    "Federal Taxes", "State Taxes", "FICA Taxes", "Medicare Taxes",
+    "Pension Contribution", "Other Pre-Tax Contributions",
+    "Post-Tax Contributions", "Payroll Deductions",
+    "Annual Budget Expenses", "Play Money"
+]
+values = [
+    federal_tax,
+    state_tax,
+    fica_tax,
+    medicare_tax,
+    pension_contribution,
+    sum(pretax_contributions.values()),
+    total_posttax_contributions,
+    total_other_deductions,
+    total_annual_expenses,
+    final_play_money if final_play_money > 0 else 0
+]
+
+fig1, ax1 = plt.subplots()
+ax1.pie(values, labels=labels, autopct='%1.1f%%', startangle=90)
+ax1.axis('equal')
+st.pyplot(fig1)
+
+# --- Save/Download Settings ---
+st.sidebar.header("Save Settings")
+if st.sidebar.button("💾 Save Current Settings"):
+    settings = {
+        "gross_salary": gross_salary,
+        "bonus_income": bonus_income,
+        "filing_status": filing_status,
+        "pretax_contributions": pretax_contributions,
+        "posttax_contributions": posttax_contributions,
+        "pension_percent": pension_percent * 100,
+        "per_paycheck_deductions": {
+            "health_insurance": health_insurance,
+            "dental_insurance": dental_insurance,
+            "parking": parking,
+            "disability_insurance": disability_insurance,
+            "other_deductions": other_deductions
+        },
+        "monthly_expenses": {
+            "hoa": hoa,
+            "home_maintenance": home_maintenance,
+            "condo_insurance": condo_insurance,
+            "property_tax": property_tax,
+            "grocery_store": grocery_store,
+            "costco_grocery": costco_grocery,
+            "amazon_grocery": amazon_grocery,
+            "dining_out": dining_out,
+            "takeout": takeout,
+            "coffee": coffee,
+            "gas": gas,
+            "car_insurance": car_insurance,
+            "rideshare": rideshare,
+            "car_maintenance": car_maintenance,
+            "electric": electric,
+            "water_sewer": water_sewer,
+            "internet": internet,
+            "phone": phone,
+            "netflix": netflix,
+            "chatgpt": chatgpt,
+            "prime": prime,
+            "crunchyroll": crunchyroll,
+            "other_subs": other_subs,
+            "amazon_misc": amazon_misc,
+            "clothes_drycleaning": clothes_drycleaning,
+            "gym_supplements": gym_supplements,
+            "medical": medical,
+            "car_property_tax": car_property_tax,
+            "miscellaneous": miscellaneous
+        }
+    }
+    st.download_button(
+        "Download Settings JSON",
+        data=json.dumps(settings),
+        file_name="paycheck_budget_settings.json",
+        mime="application/json"
+    )
+
