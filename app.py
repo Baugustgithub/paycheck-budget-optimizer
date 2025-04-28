@@ -11,11 +11,14 @@ st.title("💸 Paycheck + Budget + Tax Optimizer (Twice a Month Paychecks)")
 
 # --- Sidebar Inputs ---
 st.sidebar.header("Income")
-gross_salary = st.sidebar.number_input("Base Salary ($/year)", value=145000, step=1000)
+gross_salary = st.sidebar.number_input("Base Salary ($/year)", value=145125, step=1000)
 bonus_income = st.sidebar.number_input("Bonus Income (Optional) ($/year)", value=0, step=1000)
 
 # Pre-Tax Contributions
 st.sidebar.header("Pre-Tax Contributions")
+pension_percent = st.sidebar.number_input("Pension/VRS Contribution (% of Salary)", value=5.0, step=0.1) / 100
+pension_contribution = gross_salary * pension_percent
+
 pretax_contributions = {
     "403(b) Traditional": st.sidebar.number_input("403(b) Traditional ($/year)", value=20000, step=500),
     "457(b) Traditional": st.sidebar.number_input("457(b) Traditional ($/year)", value=20000, step=500),
@@ -35,11 +38,18 @@ posttax_contributions = {
     "Other Post-Tax": st.sidebar.number_input("Other Post-Tax Deductions ($/year)", value=0, step=500),
 }
 
-# Other Payroll Deductions
-st.sidebar.header("Other Payroll Deductions")
-insurance_deductions = st.sidebar.number_input("Insurance, Parking, Other ($/year)", value=5000, step=500)
+# Other Payroll Deductions Per Paycheck
+st.sidebar.header("Other Payroll Deductions (Per Paycheck)")
+health_insurance = st.sidebar.number_input("Health Insurance ($/paycheck)", value=100)
+dental_insurance = st.sidebar.number_input("Dental Insurance ($/paycheck)", value=20)
+parking = st.sidebar.number_input("Parking ($/paycheck)", value=40)
+disability_insurance = st.sidebar.number_input("Disability Insurance ($/paycheck)", value=15)
+other_deductions = st.sidebar.number_input("Other Payroll Deductions ($/paycheck)", value=25)
 
-# Monthly Budget
+# Multiply by 24 pay periods
+total_other_deductions = 24 * (health_insurance + dental_insurance + parking + disability_insurance + other_deductions)
+
+# Monthly Budget Expenses
 st.sidebar.header("Monthly Budget Expenses")
 housing = st.sidebar.number_input("Housing (HOA, Home Maintenance) ($/month)", value=300)
 groceries = st.sidebar.number_input("Groceries ($/month)", value=600)
@@ -56,9 +66,16 @@ if st.sidebar.button("💾 Save Current Settings"):
     settings = {
         "gross_salary": gross_salary,
         "bonus_income": bonus_income,
+        "pension_percent": pension_percent,
         "pretax_contributions": pretax_contributions,
         "posttax_contributions": posttax_contributions,
-        "insurance_deductions": insurance_deductions,
+        "per_paycheck_deductions": {
+            "health_insurance": health_insurance,
+            "dental_insurance": dental_insurance,
+            "parking": parking,
+            "disability_insurance": disability_insurance,
+            "other_deductions": other_deductions
+        },
         "monthly_expenses": {
             "housing": housing,
             "groceries": groceries,
@@ -82,13 +99,13 @@ if st.sidebar.button("💾 Save Current Settings"):
 # Total Income
 total_income = gross_salary + bonus_income
 
-# Pre-Tax Contribution Total
-total_pretax_contributions = sum(pretax_contributions.values())
+# Pre-Tax Contribution Total (including Pension)
+total_pretax_contributions = pension_contribution + sum(pretax_contributions.values())
 
 # Adjusted Gross Income
 agi = total_income - total_pretax_contributions
 
-# Tax Estimates (simple estimates for now)
+# Tax Estimates (simplified flat rate)
 federal_tax_rate = 0.22
 state_tax_rate = 0.0575
 
@@ -104,8 +121,8 @@ after_tax_income = total_income - total_tax
 # Post-Tax Contributions
 total_posttax_contributions = sum(posttax_contributions.values())
 
-# Net Available After Post-Tax Savings
-net_available_cash = after_tax_income - total_posttax_contributions - insurance_deductions
+# Net Available After Post-Tax Saving
+net_available_cash = after_tax_income - total_posttax_contributions - total_other_deductions
 
 # Total Monthly Expenses
 monthly_fixed_expenses = housing + groceries + restaurants + transport + utilities + subscriptions + lifestyle + other_expenses
@@ -155,16 +172,18 @@ st.divider()
 st.header("📊 Visualization: Salary Allocation")
 labels = [
     "Federal Taxes", "State Taxes", "FICA/Medicare", 
-    "Pre-Tax Contributions", "Post-Tax Contributions", 
-    "Insurance Deductions", "Fixed Living Expenses", "Play Money"
+    "Pension Contribution", "Other Pre-Tax Contributions",
+    "Post-Tax Contributions", "Other Payroll Deductions", 
+    "Fixed Living Expenses", "Play Money"
 ]
 values = [
     federal_tax,
     state_tax,
     fica_tax + medicare_tax,
-    total_pretax_contributions,
+    pension_contribution,
+    sum(pretax_contributions.values()),
     total_posttax_contributions,
-    insurance_deductions,
+    total_other_deductions,
     total_annual_fixed_expenses,
     final_play_money if final_play_money > 0 else 0
 ]
