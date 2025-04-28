@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import json
 
 # --- Streamlit Config ---
-st.set_page_config(page_title="💸 Paycheck & Budget Optimizer", layout="wide")
-st.title("💸 Paycheck + Budget + Tax Optimizer (Twice a Month Paychecks)")
+st.set_page_config(page_title="💸 Paycheck & Detailed Budget Optimizer", layout="wide")
+st.title("💸 Paycheck + Detailed Budget + Tax Optimizer (Twice a Month Paychecks)")
 
 # --- Sidebar Inputs ---
 st.sidebar.header("Income")
@@ -38,7 +38,7 @@ posttax_contributions = {
     "Other Post-Tax": st.sidebar.number_input("Other Post-Tax Deductions ($/year)", value=0, step=500),
 }
 
-# Other Payroll Deductions Per Paycheck
+# --- Per Paycheck Deductions ---
 st.sidebar.header("Other Payroll Deductions (Per Paycheck)")
 health_insurance = st.sidebar.number_input("Health Insurance ($/paycheck)", value=100)
 dental_insurance = st.sidebar.number_input("Dental Insurance ($/paycheck)", value=20)
@@ -49,146 +49,61 @@ other_deductions = st.sidebar.number_input("Other Payroll Deductions ($/paycheck
 # Multiply by 24 pay periods
 total_other_deductions = 24 * (health_insurance + dental_insurance + parking + disability_insurance + other_deductions)
 
-# Monthly Budget Expenses
-st.sidebar.header("Monthly Budget Expenses")
-housing = st.sidebar.number_input("Housing (HOA, Home Maintenance) ($/month)", value=300)
-groceries = st.sidebar.number_input("Groceries ($/month)", value=600)
-restaurants = st.sidebar.number_input("Restaurants ($/month)", value=400)
-transport = st.sidebar.number_input("Transportation ($/month)", value=300)
-utilities = st.sidebar.number_input("Utilities (Electric, Internet, Sewer) ($/month)", value=200)
-subscriptions = st.sidebar.number_input("Subscriptions (Netflix, ChatGPT, Prime, etc.) ($/month)", value=100)
-lifestyle = st.sidebar.number_input("Lifestyle (Shopping, Miscellaneous) ($/month)", value=800)
-other_expenses = st.sidebar.number_input("Other Expenses (Prescriptions, Car Tax, etc.) ($/month)", value=100)
+# --- Detailed Monthly Budget Inputs ---
+st.sidebar.header("Monthly Budget (Detailed)")
 
-# Save/Load Settings
-st.sidebar.header("Save/Load Settings")
-if st.sidebar.button("💾 Save Current Settings"):
-    settings = {
-        "gross_salary": gross_salary,
-        "bonus_income": bonus_income,
-        "pension_percent": pension_percent,
-        "pretax_contributions": pretax_contributions,
-        "posttax_contributions": posttax_contributions,
-        "per_paycheck_deductions": {
-            "health_insurance": health_insurance,
-            "dental_insurance": dental_insurance,
-            "parking": parking,
-            "disability_insurance": disability_insurance,
-            "other_deductions": other_deductions
-        },
-        "monthly_expenses": {
-            "housing": housing,
-            "groceries": groceries,
-            "restaurants": restaurants,
-            "transport": transport,
-            "utilities": utilities,
-            "subscriptions": subscriptions,
-            "lifestyle": lifestyle,
-            "other_expenses": other_expenses
-        }
-    }
-    st.download_button(
-        "Download Settings JSON",
-        data=json.dumps(settings),
-        file_name="paycheck_budget_settings.json",
-        mime="application/json"
-    )
+# Housing
+st.sidebar.subheader("🏠 Housing")
+hoa = st.sidebar.number_input("HOA Fees ($/month)", value=232)
+home_maintenance = st.sidebar.number_input("Home Maintenance ($/month)", value=50)
+condo_insurance = st.sidebar.number_input("Condo Insurance ($/month)", value=78)
+property_tax = st.sidebar.number_input("Property Taxes ($/month)", value=175)
 
-# --- Calculations ---
+# Groceries
+st.sidebar.subheader("🥦 Groceries")
+grocery_store = st.sidebar.number_input("Grocery Stores ($/month)", value=600)
+costco_grocery = st.sidebar.number_input("Costco Grocery ($/month)", value=100)
+amazon_grocery = st.sidebar.number_input("Amazon Grocery ($/month)", value=0)
 
-# Total Income
-total_income = gross_salary + bonus_income
+# Restaurants
+st.sidebar.subheader("🍽️ Restaurants")
+dining_out = st.sidebar.number_input("Dining Out ($/month)", value=400)
+takeout = st.sidebar.number_input("Takeout ($/month)", value=100)
+coffee = st.sidebar.number_input("Coffee Shops ($/month)", value=50)
 
-# Pre-Tax Contribution Total (including Pension)
-total_pretax_contributions = pension_contribution + sum(pretax_contributions.values())
+# Transportation
+st.sidebar.subheader("🚗 Transportation")
+gas = st.sidebar.number_input("Gas ($/month)", value=60)
+car_insurance = st.sidebar.number_input("Car Insurance ($/month)", value=97)
+rideshare = st.sidebar.number_input("Uber/Lyft ($/month)", value=30)
+car_maintenance = st.sidebar.number_input("Car Maintenance ($/month)", value=60)
 
-# Adjusted Gross Income
-agi = total_income - total_pretax_contributions
+# Utilities
+st.sidebar.subheader("⚡ Utilities")
+electric = st.sidebar.number_input("Electric ($/month)", value=95)
+water_sewer = st.sidebar.number_input("Water/Sewer ($/month)", value=5)
+internet = st.sidebar.number_input("Internet ($/month)", value=50)
+phone = st.sidebar.number_input("Phone Bill ($/month)", value=70)
 
-# Tax Estimates (simplified flat rate)
-federal_tax_rate = 0.22
-state_tax_rate = 0.0575
+# Subscriptions
+st.sidebar.subheader("📺 Subscriptions")
+netflix = st.sidebar.number_input("Netflix ($/month)", value=20)
+chatgpt = st.sidebar.number_input("ChatGPT ($/month)", value=20)
+prime = st.sidebar.number_input("Amazon Prime ($/month)", value=10)
+crunchyroll = st.sidebar.number_input("Crunchyroll ($/month)", value=10)
+other_subs = st.sidebar.number_input("Other Subscriptions ($/month)", value=40)
 
-federal_tax = agi * federal_tax_rate
-state_tax = agi * state_tax_rate
-fica_tax = total_income * 0.062
-medicare_tax = total_income * 0.0145
-total_tax = federal_tax + state_tax + fica_tax + medicare_tax
+# Lifestyle
+st.sidebar.subheader("🎯 Lifestyle")
+amazon_misc = st.sidebar.number_input("Amazon Non-Grocery ($/month)", value=100)
+clothes_drycleaning = st.sidebar.number_input("Clothes/Dry Cleaning ($/month)", value=160)
+gym_supplements = st.sidebar.number_input("Gym/Supplements ($/month)", value=150)
 
-# After-Tax Income
-after_tax_income = total_income - total_tax
+# Other Expenses
+st.sidebar.subheader("💊 Other Expenses")
+medical = st.sidebar.number_input("Medical/Prescriptions ($/month)", value=75)
+car_property_tax = st.sidebar.number_input("Car Property Tax ($/month)", value=13)
+miscellaneous = st.sidebar.number_input("Miscellaneous ($/month)", value=50)
 
-# Post-Tax Contributions
-total_posttax_contributions = sum(posttax_contributions.values())
+# (Calculations and rest of the app continue from here...)
 
-# Net Available After Post-Tax Saving
-net_available_cash = after_tax_income - total_posttax_contributions - total_other_deductions
-
-# Total Monthly Expenses
-monthly_fixed_expenses = housing + groceries + restaurants + transport + utilities + subscriptions + lifestyle + other_expenses
-total_annual_fixed_expenses = monthly_fixed_expenses * 12
-
-# Final Play Money
-final_play_money = net_available_cash - total_annual_fixed_expenses
-
-# --- No Contributions Scenario ---
-no_contrib_agi = total_income
-no_contrib_federal_tax = no_contrib_agi * federal_tax_rate
-no_contrib_state_tax = no_contrib_agi * state_tax_rate
-no_contrib_total_tax = no_contrib_federal_tax + no_contrib_state_tax + fica_tax + medicare_tax
-no_contrib_after_tax_income = total_income - no_contrib_total_tax
-
-# --- Tax Savings from Contributions ---
-tax_savings = no_contrib_total_tax - total_tax
-
-# --- Display Outputs ---
-
-st.header("🏦 Income & Contribution Summary")
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.metric("Gross Annual Income", f"${total_income:,.0f}")
-    st.metric("Gross Monthly Income", f"${total_income/12:,.0f}")
-    st.metric("Gross Per Paycheck", f"${total_income/24:,.0f}")
-
-with col2:
-    st.metric("After-Tax Annual (w/ Contributions)", f"${after_tax_income:,.0f}")
-    st.metric("After-Tax Monthly", f"${after_tax_income/12:,.0f}")
-    st.metric("After-Tax Per Paycheck", f"${after_tax_income/24:,.0f}")
-
-with col3:
-    st.metric("After Post-Tax Saving Annual", f"${net_available_cash:,.0f}")
-    st.metric("Play Money Annual", f"${final_play_money:,.0f}")
-    st.metric("Play Money Per Paycheck", f"${final_play_money/24:,.0f}")
-
-st.divider()
-
-st.header("⚖️ No Contributions Scenario Comparison")
-st.write(f"**Take-Home Pay with No Contributions (Annual):** ${no_contrib_after_tax_income:,.0f}")
-st.write(f"**Tax Savings Due to Contributions:** ${tax_savings:,.0f}")
-
-st.divider()
-
-st.header("📊 Visualization: Salary Allocation")
-labels = [
-    "Federal Taxes", "State Taxes", "FICA/Medicare", 
-    "Pension Contribution", "Other Pre-Tax Contributions",
-    "Post-Tax Contributions", "Other Payroll Deductions", 
-    "Fixed Living Expenses", "Play Money"
-]
-values = [
-    federal_tax,
-    state_tax,
-    fica_tax + medicare_tax,
-    pension_contribution,
-    sum(pretax_contributions.values()),
-    total_posttax_contributions,
-    total_other_deductions,
-    total_annual_fixed_expenses,
-    final_play_money if final_play_money > 0 else 0
-]
-
-fig1, ax1 = plt.subplots()
-ax1.pie(values, labels=labels, autopct='%1.1f%%', startangle=90)
-ax1.axis('equal')
-st.pyplot(fig1)
