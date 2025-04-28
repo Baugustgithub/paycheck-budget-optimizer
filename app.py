@@ -6,13 +6,14 @@ import matplotlib.pyplot as plt
 import json
 
 # --- Streamlit Config ---
-st.set_page_config(page_title="💸 Paycheck & Detailed Budget Optimizer", layout="wide")
-st.title("💸 Paycheck + Detailed Budget + Tax Optimizer (Twice a Month Paychecks)")
+st.set_page_config(page_title="💸 Paycheck & Budget Optimizer", layout="wide")
+st.title("💸 Paycheck + Detailed Budget + Real Tax Calculator (2025)")
 
 # --- Sidebar Inputs ---
 st.sidebar.header("Income")
 gross_salary = st.sidebar.number_input("Base Salary ($/year)", value=145125, step=1000)
 bonus_income = st.sidebar.number_input("Bonus Income (Optional) ($/year)", value=0, step=1000)
+filing_status = st.sidebar.selectbox("Filing Status", ["Single", "Married Filing Jointly"])
 
 # Pre-Tax Contributions
 st.sidebar.header("Pre-Tax Contributions")
@@ -38,7 +39,7 @@ posttax_contributions = {
     "Other Post-Tax": st.sidebar.number_input("Other Post-Tax Deductions ($/year)", value=0, step=500),
 }
 
-# --- Per Paycheck Deductions ---
+# Other Payroll Deductions Per Paycheck
 st.sidebar.header("Other Payroll Deductions (Per Paycheck)")
 health_insurance = st.sidebar.number_input("Health Insurance ($/paycheck)", value=100)
 dental_insurance = st.sidebar.number_input("Dental Insurance ($/paycheck)", value=20)
@@ -46,12 +47,11 @@ parking = st.sidebar.number_input("Parking ($/paycheck)", value=40)
 disability_insurance = st.sidebar.number_input("Disability Insurance ($/paycheck)", value=15)
 other_deductions = st.sidebar.number_input("Other Payroll Deductions ($/paycheck)", value=25)
 
-# Multiply by 24 pay periods
+# Total Payroll Deductions
 total_other_deductions = 24 * (health_insurance + dental_insurance + parking + disability_insurance + other_deductions)
 
-# --- Detailed Monthly Budget Inputs ---
+# Detailed Monthly Budget
 st.sidebar.header("Monthly Budget (Detailed)")
-
 # Housing
 st.sidebar.subheader("🏠 Housing")
 hoa = st.sidebar.number_input("HOA Fees ($/month)", value=232)
@@ -104,6 +104,65 @@ st.sidebar.subheader("💊 Other Expenses")
 medical = st.sidebar.number_input("Medical/Prescriptions ($/month)", value=75)
 car_property_tax = st.sidebar.number_input("Car Property Tax ($/month)", value=13)
 miscellaneous = st.sidebar.number_input("Miscellaneous ($/month)", value=50)
+# --- Tax Calculation Functions ---
 
-# (Calculations and rest of the app continue from here...)
+def calculate_federal_tax(agi, filing_status):
+    brackets_single = [
+        (0, 0.10),
+        (11925, 0.12),
+        (48475, 0.22),
+        (103350, 0.24),
+        (197300, 0.32),
+        (250525, 0.35),
+        (626350, 0.37)
+    ]
+    brackets_married = [
+        (0, 0.10),
+        (23850, 0.12),
+        (96950, 0.22),
+        (206700, 0.24),
+        (394600, 0.32),
+        (501050, 0.35),
+        (752600, 0.37)
+    ]
+    brackets = brackets_single if filing_status == "Single" else brackets_married
+    
+    tax = 0
+    previous_limit = 0
+    for limit, rate in brackets:
+        if agi > previous_limit:
+            taxable_at_this_rate = min(agi, limit) - previous_limit
+            tax += taxable_at_this_rate * rate
+            previous_limit = limit
+        else:
+            break
+    return max(tax, 0)
 
+def calculate_virginia_tax(agi):
+    brackets = [
+        (0, 0.02),
+        (3000, 0.03),
+        (5000, 0.05),
+        (17000, 0.0575)
+    ]
+    
+    tax = 0
+    previous_limit = 0
+    for limit, rate in brackets:
+        if agi > previous_limit:
+            taxable_at_this_rate = min(agi, limit) - previous_limit
+            tax += taxable_at_this_rate * rate
+            previous_limit = limit
+        else:
+            break
+    if agi > 17000:
+        tax += (agi - 17000) * 0.0575
+    return max(tax, 0)
+
+def calculate_fica_tax(total_income):
+    social_security_cap = 168600  # For 2024/2025
+    taxed_income = min(total_income, social_security_cap)
+    return taxed_income * 0.062
+
+def calculate_medicare_tax(total_income):
+    return total_income * 0.0145
